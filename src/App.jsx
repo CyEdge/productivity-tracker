@@ -1,11 +1,15 @@
 // Defines your main React Component. Every React app starts from here.
 import { useState } from "react";
+import useLocalStorage from "./hooks/useLocalStorage";
 import TaskForm from "./components/tasks/TaskForm";
 import Modal from "./components/common/Modal";
 import TaskCard from "./components/tasks/TaskCard";
 function App() {
-  // Sample tasks data - useState hook to manage tasks state
-  const [tasks, setTasks] = useState([
+  // useLocalStorage hook to manage tasks with persistence in localStorage
+  // 'tasks' is the key in localStorage, second parameter is the default value (empty array here)
+  // Returns current tasks and function to update them
+  // useLocalStorage works like useState but syncs with localStorage so data persists across page reloads
+  const [tasks, setTasks] = useLocalStorage("tasks", [
     // useState([]) - returns an array with 2 elements: current state value (tasks) and function to update it (setTasks)
     {
       id: "1",
@@ -88,6 +92,50 @@ function App() {
     );
   };
 
+  // Export tasks as JSON file
+  const exportTasks = () => {
+    const dataStr = JSON.stringify(tasks, null, 2); // Pretty-print JSON with 2-space indentation
+    const dataBlob = new Blob([dataStr], { type: "application/json" }); // Create a Blob from JSON string
+    const url = URL.createObjectURL(dataBlob); // Create a URL for the Blob
+    const link = document.createElement("a"); // Create a temporary anchor element
+    link.href = url; // Set href to Blob URL
+    link.download = `tasks-backup-${
+      // Filename with current date
+      new Date().toISOString().split("T")[0] // Get date part only
+    }.json`; // Set download attribute with filename
+    link.click(); // Trigger download by simulating a click
+    URL.revokeObjectURL(url); // Clean up the URL object after download
+  };
+
+  // Import tasks from JSON file
+  const importTasks = (event) => {
+    const file = event.target.files[0]; // Get selected file
+    if (!file) return; // If no file, do nothing
+
+    const reader = new FileReader(); // FileReader API to read file contents as text
+    reader.onload = (e) => {
+      try {
+        const importedTasks = JSON.parse(e.target.result); // Parse JSON content
+        // Validate imported data structure (basic check)
+        if (!Array.isArray(importedTasks)) {
+          throw new Error("Invalid file format");
+        }
+        // Merge with existing tasks (avoid duplicates by ID)
+        const existingIds = tasks.map((t) => t.id);
+        const newTasks = importedTasks.filter(
+          // Only add tasks with new IDs
+          (t) => !existingIds.includes(t.id) // Filter out tasks with IDs already in existingIds
+        );
+        setTasks([...tasks, ...newTasks]); // Add new tasks to existing tasks
+        alert(`Imported ${newTasks.length} new tasks!`); // Show success message
+      } catch (error) {
+        alert("Error importing tasks. Please check file format.");
+        console.error("Import error:", error);
+      }
+    };
+    reader.readAsText(file); // Read file as text to trigger onload event
+  };
+
   return (
     // min-h-screen: Makes the background extend to full screen height.
     // bg-gray-100: Sets a soft light-gray background.
@@ -101,8 +149,9 @@ function App() {
         {tasks.length} tasks to manage
       </p>
 
-      {/* Add Task Button */}
-      <div className="max-w-6xl mx-auto mb-6">
+      {/* Action Buttons */}
+      <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-1 mb-6">
+        {/* Add Task Button */}
         <button
           onClick={() => setIsModalOpen(true)}
           className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-md hover:shadow-lg flex items-center gap-2"
@@ -122,6 +171,51 @@ function App() {
           </svg>
           Add New Task
         </button>
+
+        {/* Export Button */}
+        <button
+          onClick={exportTasks}
+          className="bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 transition-colors font-medium shadow-md hover:shadow-lg flex items-center gap-2"
+        >
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+            />
+          </svg>
+          Export
+        </button>
+
+        {/* Import Button */}
+        <label className="bg-purple-600 text-white px-4 py-3 rounded-lg hover:bg-purple-700 transition-colors font-medium shadow-md hover:shadow-lg flex items-center gap-2 cursor-pointer">
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+            />
+          </svg>
+          Import
+          <input
+            type="file"
+            accept=".json"
+            onChange={importTasks}
+            className="hidden"
+          />
+        </label>
       </div>
 
       {/* Task Grid or Empty State */}
