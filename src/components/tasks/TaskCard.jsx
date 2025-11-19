@@ -1,10 +1,32 @@
 // Defines a React component named TaskCard - { task } - Destructuring props - This component receives a task object as input
 // Props are like function parameters - data passed from parent component to child
-function TaskCard({ task }) {
+function TaskCard({ task, onComplete, onDelete }) {
+  // Why create a handler?
+  // onClick needs a function
+  // We want to call onComplete with task.id
+  // Can't write onClick={onComplete(task.id)} (would call immediately)
+  // Wrap in arrow function: onClick={() => onComplete(task.id)} OR create named handler
+  const handleComplete = () => {
+    onComplete(task.id);
+  };
+  const handleDelete = () => {
+    if (window.confirm('Delete task: "${task.title}"?')) {
+      // window.confirm() shows browser confirmation dialog
+      onDelete(task.id);
+    }
+  };
   return (
     <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow duration-200">
       {/* Task Title */}
-      <h3 className="text-xl font-semibold text-gray-800 mb-2">{task.title}</h3>
+      <h3
+        className={`text-xl font-semibold mb-2 ${
+          task.status === "Complete"
+            ? "line-through text-gray-500"
+            : "text-gray-800"
+        }`}
+      >
+        {task.title}
+      </h3>
       {/* JavaScript expression in JSX - displays the task's title from props Curly braces {} in JSX mean: Execute this as JavaScript, not text. */}
       {/* Task Description */}
       {task.description && (
@@ -42,13 +64,21 @@ function TaskCard({ task }) {
       </div>
       {/* Action Buttons */}
       <div className="flex gap-2">
-        <button className="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 transition-colors text-sm font-medium">
-          Complete
-        </button>
+        {task.status !== "Complete" && (
+          <button
+            onClick={handleComplete}
+            className="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 transition-colors text-sm font-medium"
+          >
+            Complete
+          </button>
+        )}
         <button className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-colors text-sm font-medium">
           Edit
         </button>
-        <button className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 transition-colors text-sm font-medium">
+        <button
+          onClick={handleDelete}
+          className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 transition-colors text-sm font-medium"
+        >
           Delete
         </button>
       </div>
