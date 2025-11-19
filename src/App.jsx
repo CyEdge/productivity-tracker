@@ -1,5 +1,6 @@
 // Defines your main React Component. Every React app starts from here.
 import { useState, useEffect } from "react";
+import { notificationService } from "./services/notificationService";
 import {
   BrowserRouter as Router,
   Routes,
@@ -75,6 +76,10 @@ function App() {
     );
     setEditingTask(null);
   };
+
+  useEffect(() => {
+    notificationService.init();
+  }, []);
 
   // Export tasks as JSON file
   const exportTasks = () => {
