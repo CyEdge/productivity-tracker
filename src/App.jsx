@@ -1,9 +1,16 @@
 // Defines your main React Component. Every React app starts from here.
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  NavLink,
+} from "react-router-dom";
 import useLocalStorage from "./hooks/useLocalStorage";
+import Dashboard from "./pages/Dashboard";
 import TaskForm from "./components/tasks/TaskForm";
 import Modal from "./components/common/Modal";
-import TaskCard from "./components/tasks/TaskCard";
+import Tasks from "./pages/Tasks";
 function App() {
   // useLocalStorage hook to manage tasks with persistence in localStorage
   // 'tasks' is the key in localStorage, second parameter is the default value (empty array here)
@@ -59,39 +66,6 @@ function App() {
   ]);
   const [isModalOpen, setIsModalOpen] = useState(false); // State to control modal visibility
 
-  // Function to add a new task
-  const addTask = (newTask) => {
-    // parameter: newTask (the new task object to add)
-    // ...tasks - Spread existing tasks (copy all items)
-    // ,newTask - Add new task at the end
-    setTasks([...tasks, newTask]);
-    setIsModalOpen(false); // Close modal after adding task
-  };
-
-  // Function to delete a task
-  const deleteTask = (taskId) => {
-    // takes taskId (ID of task to delete)
-    // .filter() creates a new array with items that pass a test
-    // Test: task.id !== taskId (keep task if ID doesn't match)
-    // Result: All tasks EXCEPT the one with matching ID
-    setTasks(tasks.filter((task) => task.id !== taskId));
-  };
-
-  // Function to complete a task
-  const completeTask = (taskId) => {
-    setTasks(
-      tasks.map((task) =>
-        task.id === taskId
-          ? {
-              ...task,
-              status: "Complete",
-              completedAt: new Date().toISOString(),
-            }
-          : task
-      )
-    );
-  };
-
   // Export tasks as JSON file
   const exportTasks = () => {
     const dataStr = JSON.stringify(tasks, null, 2); // Pretty-print JSON with 2-space indentation
@@ -136,128 +110,120 @@ function App() {
     reader.readAsText(file); // Read file as text to trigger onload event
   };
 
+  // Function to add a new task
+  const addTask = (newTask) => {
+    // parameter: newTask (the new task object to add)
+    // ...tasks - Spread existing tasks (copy all items)
+    // ,newTask - Add new task at the end
+    setTasks([...tasks, newTask]);
+    setIsModalOpen(false); // Close modal after adding task
+  };
+
+  // Function to delete a task
+  const deleteTask = (taskId) => {
+    // takes taskId (ID of task to delete)
+    // .filter() creates a new array with items that pass a test
+    // Test: task.id !== taskId (keep task if ID doesn't match)
+    // Result: All tasks EXCEPT the one with matching ID
+    setTasks(tasks.filter((task) => task.id !== taskId));
+  };
+
+  // Function to complete a task
+  const completeTask = (taskId) => {
+    setTasks(
+      tasks.map((task) =>
+        task.id === taskId
+          ? {
+              ...task,
+              status: "Complete",
+              completedAt: new Date().toISOString(),
+            }
+          : task
+      )
+    );
+  };
+
+  useEffect(
+    () => {
+      // Effect to sync tasks to localStorage whenever tasks change
+      localStorage.setItem("tasks", JSON.stringify(tasks)); // Sync tasks to localStorage on every tasks change
+    },
+    [tasks] // Dependency array - runs effect whenever 'tasks' changes
+  );
+
   return (
-    // min-h-screen: Makes the background extend to full screen height.
-    // bg-gray-100: Sets a soft light-gray background.
-    // flex flex-col items-center justify-start: Uses Flexbox, stacks contents vertically, centers them, starts at the top.
-    // p-8: Padding all around, making it look breathable.
-    <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-start p-8">
-      <h1 className="text-4xl font-bold text-blue-700 mb-4">
-        Productivity Tracker
-      </h1>
-      <p className="text-gray-600 text-center mb-8">
-        {tasks.length} tasks to manage
-      </p>
-
-      {/* Action Buttons */}
-      <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-1 mb-6">
-        {/* Add Task Button */}
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-md hover:shadow-lg flex items-center gap-2"
-        >
-          <svg
-            className="w-5 h-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+    <Router>
+      <div className="min-h-screen bg-gray-100">
+        {/* Navbar */}
+        <nav className="bg-white shadow p-4 flex justify-center gap-8 font-semibold">
+          <NavLink
+            to="/"
+            className={({ isActive }) =>
+              isActive
+                ? "text-blue-700 border-b-4 border-blue-700"
+                : "text-gray-600 hover:text-blue-700"
+            }
+            end
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 4v16m8-8H4"
-            />
-          </svg>
-          Add New Task
-        </button>
-
-        {/* Export Button */}
-        <button
-          onClick={exportTasks}
-          className="bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 transition-colors font-medium shadow-md hover:shadow-lg flex items-center gap-2"
-        >
-          <svg
-            className="w-5 h-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+            Dashboard
+          </NavLink>
+          <NavLink
+            to="/tasks"
+            className={({ isActive }) =>
+              isActive
+                ? "text-blue-700 border-b-4 border-blue-700"
+                : "text-gray-600 hover:text-blue-700"
+            }
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-            />
-          </svg>
-          Export
-        </button>
+            Tasks
+          </NavLink>
+        </nav>
 
-        {/* Import Button */}
-        <label className="bg-purple-600 text-white px-4 py-3 rounded-lg hover:bg-purple-700 transition-colors font-medium shadow-md hover:shadow-lg flex items-center gap-2 cursor-pointer">
-          <svg
-            className="w-5 h-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
-            />
-          </svg>
-          Import
-          <input
-            type="file"
-            accept=".json"
-            onChange={importTasks}
-            className="hidden"
-          />
-        </label>
-      </div>
-
-      {/* Task Grid or Empty State */}
-      {tasks.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-gray-500 text-lg mb-4">
-            No tasks yet. Create your first task to get started!
-          </p>
-          <p className="text-gray-400 text-sm">
-            (We'll add a form to create tasks in the next step)
-          </p>
-        </div>
-      ) : (
-        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {tasks.map((task) => (
-            // Implicit Return with Parentheses)  {tasks.map((task) => (...))}
-            // Explicit Return with Curly Braces)  {tasks.map((task) => { return (...); })}
-            // (task) => (...) is an arrow function - loops through each task in sampleTask array
-            // (task) - Function parameter (each item from array)
-            // => - Arrow function syntax (modern JavaScript)
-            // (...) - What to return for each item
-            <div key={task.id} className="w-full max-w-md mb-4">
-              <TaskCard
-                key={task.id}
-                task={task}
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <Dashboard
+                tasks={tasks}
                 onComplete={completeTask}
                 onDelete={deleteTask}
+                addTask={addTask}
+                deleteTask={deleteTask}
+                completeTask={completeTask}
+                isModalOpen={isModalOpen}
+                setIsModalOpen={setIsModalOpen}
+                importTasks={importTasks}
+                exportTasks={exportTasks}
+                setTasks={setTasks}
               />
-            </div>
-          ))}
-        </div>
-      )}
+            }
+          />
+          <Route
+            path="/tasks"
+            element={
+              <Tasks
+                tasks={tasks}
+                completeTask={completeTask}
+                deleteTask={deleteTask}
+                setIsModalOpen={setIsModalOpen}
+                importTasks={importTasks}
+                exportTasks={exportTasks}
+                onAdd={() => setIsModalOpen(true)}
+              />
+            }
+          />
+        </Routes>
 
-      {/* // Modal for Task Form */}
-      <Modal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title="Create New Task"
-      >
-        <TaskForm onSubmit={addTask} onCancel={() => setIsModalOpen(false)} />
-      </Modal>
-    </div>
+        {/* Modal for adding tasks */}
+        <Modal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          title="Create New Task"
+        >
+          <TaskForm onSubmit={addTask} onCancel={() => setIsModalOpen(false)} />
+        </Modal>
+      </div>
+    </Router>
   );
 }
 
