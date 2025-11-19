@@ -1,6 +1,6 @@
-import { useState } from "react"; // Import useState hook from React to manage form data and errors
+import { useEffect, useState } from "react"; // Import useState hook from React to manage form data and errors
 
-function TaskForm({ onSubmit, onCancel }) {
+function TaskForm({ onSubmit, onCancel, initialData }) {
   // Props: onSubmit (function to call on form submit), onCancel (function to call on cancel)
   // Form state -- manage input values
   const [formData, setFormData] = useState({
@@ -14,22 +14,35 @@ function TaskForm({ onSubmit, onCancel }) {
   // Error state -- stores validation errors
   const [errors, setErrors] = useState({}); // Initially no errors
 
+  // If initialData is provided (for editing), populate form with it
+  useEffect(() => {
+    if (initialData) {
+      setFormData({
+        title: initialData.title || "",
+        description: initialData.description || "",
+        priority: initialData.priority || "Medium",
+        status: initialData.status || "Incomplete",
+      });
+    }
+  }, [initialData]);
+
   // Handle input changes
   const handleChange = (e) => {
     // e: event object from input change
     const { name, value } = e.target; // Destructure name and value from event target (input field)
-    setFormData({
+    setFormData((prev) => ({
       // Update formData state
-      ...formData, // Spread existing formData properties
+      ...prev, // Spread existing formData properties
       [name]: value, // Update the property matching input's name with new value
-    });
+    }));
 
-    // Clear error for this field when user starts typing
-    setErrors({
-      // Update errors state
-      ...errors, // Spread existing errors
-      [name]: "", // Clear error for this field
-    });
+    if (errors[name]) {
+      // Clear error for this field if it exists
+      setErrors((prev) => ({
+        ...prev,
+        [name]: null,
+      }));
+    }
   };
 
   // Validate form data
@@ -63,19 +76,21 @@ function TaskForm({ onSubmit, onCancel }) {
       return; // Stop submission
     }
 
-    const newTask = {
-      // Create new task object
-      id: Date.now().toString(), // Unique ID based on timestamp
-      title: formData.title.trim(), // Trim whitespace
-      description: formData.description.trim(), // Trim whitespace
+    const submission = {
+      ...initialData, // Spread initialData to retain existing properties (like id) if editing
+      title: formData.title.trim(),
+      description: formData.description.trim(),
       priority: formData.priority,
       status: formData.status,
-      createdAt: new Date().toISOString(), // Current date-time in ISO format
       completedAt:
-        formData.status === "Complete" ? new Date().toISOString() : null, // Set completedAt if status is Complete
+        formData.status === "Complete" && !initialData?.completedAt
+          ? new Date().toISOString()
+          : initialData?.completedAt || null,
+      createdAt: initialData?.createdAt || new Date().toISOString(),
+      id: initialData?.id || Date.now().toString(),
     };
 
-    onSubmit(newTask); // Call onSubmit prop with form data
+    onSubmit(submission); // Call onSubmit prop with form data
 
     setFormData({
       // Reset form data
@@ -195,7 +210,7 @@ function TaskForm({ onSubmit, onCancel }) {
           type="submit"
           className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors font-medium"
         >
-          Create Task
+          {initialData ? "Update Task" : "Add Task"}
         </button>
         <button
           type="button"

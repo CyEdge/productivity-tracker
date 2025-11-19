@@ -1,7 +1,6 @@
-import React from "react";
 import TaskCard from "../components/tasks/TaskCard";
 
-function Tasks({ tasks, onComplete, onDelete, onAdd }) {
+function Tasks({ tasks, onComplete, onDelete, onAdd, onEdit }) {
   return (
     <div className="min-h-screen p-8 bg-gray-50">
       <div className="flex justify-between items-center mb-8 max-w-6xl mx-auto">
@@ -39,6 +38,7 @@ function Tasks({ tasks, onComplete, onDelete, onAdd }) {
               task={task}
               onComplete={onComplete}
               onDelete={onDelete}
+              onEdit={onEdit}
             />
           ))}
         </div>

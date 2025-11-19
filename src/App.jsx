@@ -5,6 +5,7 @@ import {
   Routes,
   Route,
   NavLink,
+  useParams,
 } from "react-router-dom";
 import useLocalStorage from "./hooks/useLocalStorage";
 import Dashboard from "./pages/Dashboard";
@@ -65,6 +66,15 @@ function App() {
     },
   ]);
   const [isModalOpen, setIsModalOpen] = useState(false); // State to control modal visibility
+
+  const [editingTask, setEditingTask] = useState(null);
+
+  const handleEditTask = (updatedTask) => {
+    setTasks(
+      tasks.map((task) => (task.id === updatedTask.id ? updatedTask : task))
+    );
+    setEditingTask(null);
+  };
 
   // Export tasks as JSON file
   const exportTasks = () => {
@@ -187,14 +197,7 @@ function App() {
                 tasks={tasks}
                 onComplete={completeTask}
                 onDelete={deleteTask}
-                addTask={addTask}
-                deleteTask={deleteTask}
-                completeTask={completeTask}
-                isModalOpen={isModalOpen}
-                setIsModalOpen={setIsModalOpen}
-                importTasks={importTasks}
-                exportTasks={exportTasks}
-                setTasks={setTasks}
+                onEdit={(task) => setEditingTask(task)} // open modal in edit mode
               />
             }
           />
@@ -203,12 +206,10 @@ function App() {
             element={
               <Tasks
                 tasks={tasks}
-                completeTask={completeTask}
-                deleteTask={deleteTask}
-                setIsModalOpen={setIsModalOpen}
-                importTasks={importTasks}
-                exportTasks={exportTasks}
+                onComplete={completeTask}
+                onDelete={deleteTask}
                 onAdd={() => setIsModalOpen(true)}
+                onEdit={(task) => setEditingTask(task)} // open modal in edit mode
               />
             }
           />
@@ -216,11 +217,21 @@ function App() {
 
         {/* Modal for adding tasks */}
         <Modal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          title="Create New Task"
+          isOpen={isModalOpen || editingTask !== null}
+          onClose={() => {
+            setIsModalOpen(false);
+            setEditingTask(null);
+          }}
+          title={editingTask ? "Edit Task" : "Create New Task"}
         >
-          <TaskForm onSubmit={addTask} onCancel={() => setIsModalOpen(false)} />
+          <TaskForm
+            initialData={editingTask}
+            onSubmit={editingTask ? handleEditTask : addTask}
+            onCancel={() => {
+              setIsModalOpen(false);
+              setEditingTask(null);
+            }}
+          />
         </Modal>
       </div>
     </Router>

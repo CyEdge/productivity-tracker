@@ -1,6 +1,6 @@
 // Defines a React component named TaskCard - { task } - Destructuring props - This component receives a task object as input
 // Props are like function parameters - data passed from parent component to child
-function TaskCard({ task, onComplete, onDelete }) {
+function TaskCard({ task, onComplete, onDelete, onEdit }) {
   // Why create a handler?
   // onClick needs a function
   // We want to call onComplete with task.id
@@ -10,7 +10,7 @@ function TaskCard({ task, onComplete, onDelete }) {
     onComplete(task.id);
   };
   const handleDelete = () => {
-    if (window.confirm('Delete task: "${task.title}"?')) {
+    if (window.confirm(`Delete task: ${task.title}?`)) {
       // window.confirm() shows browser confirmation dialog
       onDelete(task.id);
     }
@@ -72,7 +72,10 @@ function TaskCard({ task, onComplete, onDelete }) {
             Complete
           </button>
         )}
-        <button className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-colors text-sm font-medium">
+        <button
+          onClick={() => onEdit(task)} // Trigger edit with the task data
+          className="bg-yellow-500 text-white px-4 py-2 rounded-md hover:bg-yellow-600 transition-colors text-sm font-medium"
+        >
           Edit
         </button>
         <button
