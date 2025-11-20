@@ -1,4 +1,5 @@
 import TaskCard from "../components/tasks/TaskCard";
+import TaskCompletionChart from "../components/analytics/TaskCompletionChart";
 
 function Dashboard({ tasks, onComplete, onDelete, onEdit }) {
   // Calculate totals
@@ -14,6 +15,24 @@ function Dashboard({ tasks, onComplete, onDelete, onEdit }) {
   const todaysTasks = tasks.filter((task) =>
     task.createdAt.startsWith(todayStr)
   );
+  const generateChartData = (tasks) => {
+    // Aggregate completed tasks by date
+    const dateMap = {};
+    tasks.forEach((task) => {
+      const date = task.createdAt.split("T")[0];
+      if (!dateMap[date]) {
+        dateMap[date] = 0;
+      }
+      if (task.status === "Complete") {
+        dateMap[date] += 1;
+      }
+    });
+    // Convert to array format for the chart
+    return Object.entries(dateMap).map(([date, completed]) => ({
+      date,
+      completed,
+    }));
+  };
 
   return (
     <div className="min-h-screen p-8 bg-gray-50">
@@ -56,6 +75,8 @@ function Dashboard({ tasks, onComplete, onDelete, onEdit }) {
           </p>
         </div>
       </div>
+
+      <TaskCompletionChart data={generateChartData(tasks)} />
 
       {/* Today's Tasks Section */}
       <div className="max-w-6xl mx-auto">

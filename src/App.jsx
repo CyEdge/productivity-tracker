@@ -1,6 +1,7 @@
 // Defines your main React Component. Every React app starts from here.
 import { useState, useEffect } from "react";
 import { notificationService } from "./services/notificationService";
+import { Toaster, toast } from "react-hot-toast";
 import {
   BrowserRouter as Router,
   Routes,
@@ -10,6 +11,8 @@ import {
 } from "react-router-dom";
 import useLocalStorage from "./hooks/useLocalStorage";
 import Dashboard from "./pages/Dashboard";
+import { sendDailySummary } from "./services/emailService";
+import { sendTestEmail } from "./services/emailService";
 import TaskForm from "./components/tasks/TaskForm";
 import Modal from "./components/common/Modal";
 import Tasks from "./pages/Tasks";
@@ -81,6 +84,78 @@ function App() {
     notificationService.init();
   }, []);
 
+  useEffect(() => {
+    // Helper to calculate time till 8:30 PM today or next day if past 8:30 PM
+    function getMSUntilTarget(hour, minute) {
+      const now = new Date();
+      const target = new Date();
+      target.setHours(hour, minute, 0, 0);
+      if (target <= now) target.setDate(target.getDate() + 1);
+      return target.getTime() - now.getTime();
+    }
+
+    // This callback will be called at the scheduled time
+    async function sendSummaryAtNight() {
+      // Only send if there were tasks today
+      const todayStr = new Date().toISOString().split("T")[0];
+      const todaysTasks = tasks.filter((task) =>
+        task.createdAt.startsWith(todayStr)
+      );
+      if (todaysTasks.length === 0) return;
+
+      const completed = todaysTasks.filter((t) => t.status === "Complete");
+      const pending = todaysTasks.filter((t) => t.status !== "Complete");
+
+      const message = `
+Daily Productivity Tracker Summary
+
+Date: ${todayStr}
+Total tasks created today: ${todaysTasks.length}
+Completed tasks: ${completed.length}
+Pending tasks: ${pending.length}
+
+Completed Tasks:
+${completed.length ? completed.map((t) => `- ${t.title}`).join("\n") : "None"}
+
+Pending Tasks:
+${pending.length ? pending.map((t) => `- ${t.title}`).join("\n") : "None"}
+`;
+
+      // Replace with manager's email:
+      const toEmail = "ashokmuwal111@gmail.com";
+
+      const success = await sendDailySummary({ toEmail, message });
+      if (success) {
+        toast.success("Daily summary email sent successfully!");
+      } else {
+        toast.error("Failed to send daily summary email.");
+      }
+      // Optionally show a notification or toast (not shown here)
+    }
+
+    // Set up timer
+    const msUntil830 = getMSUntilTarget(20, 30); // 8:30 PM
+    const timerId = setTimeout(() => {
+      sendSummaryAtNight();
+      // Set up daily repetition
+      setInterval(sendSummaryAtNight, 24 * 60 * 60 * 1000);
+    }, msUntil830);
+
+    // Cleanup if component unmounts (not likely for App)
+    return () => clearTimeout(timerId);
+  }, [tasks]);
+
+  //This callback will be called at the scheduled time
+  async function sendSummaryAtNight() {
+    // Only send if there were tasks today
+    const todayStr = new Date.toISOString().split("T")[0];
+    const todaysTasks = tasks.filter((task) =>
+      task.createdAt.startsWith(todayStr)
+    );
+    if (todaysTasks.length === 0) return;
+
+    const completed = todaysTasks.filter((t) => t.status === "Complete");
+  }
   // Export tasks as JSON file
   const exportTasks = () => {
     const dataStr = JSON.stringify(tasks, null, 2); // Pretty-print JSON with 2-space indentation
@@ -167,79 +242,83 @@ function App() {
   );
 
   return (
-    <Router>
-      <div className="min-h-screen bg-gray-100">
-        {/* Navbar */}
-        <nav className="bg-white shadow p-4 flex justify-center gap-8 font-semibold">
-          <NavLink
-            to="/"
-            className={({ isActive }) =>
-              isActive
-                ? "text-blue-700 border-b-4 border-blue-700"
-                : "text-gray-600 hover:text-blue-700"
-            }
-            end
-          >
-            Dashboard
-          </NavLink>
-          <NavLink
-            to="/tasks"
-            className={({ isActive }) =>
-              isActive
-                ? "text-blue-700 border-b-4 border-blue-700"
-                : "text-gray-600 hover:text-blue-700"
-            }
-          >
-            Tasks
-          </NavLink>
-        </nav>
+    <>
+      {/* Your existing JSX */}
+      <Toaster position="top-right" />
+      <Router>
+        <div className="min-h-screen bg-gray-100">
+          {/* Navbar */}
+          <nav className="bg-white shadow p-4 flex justify-center gap-8 font-semibold">
+            <NavLink
+              to="/"
+              className={({ isActive }) =>
+                isActive
+                  ? "text-blue-700 border-b-4 border-blue-700"
+                  : "text-gray-600 hover:text-blue-700"
+              }
+              end
+            >
+              Dashboard
+            </NavLink>
+            <NavLink
+              to="/tasks"
+              className={({ isActive }) =>
+                isActive
+                  ? "text-blue-700 border-b-4 border-blue-700"
+                  : "text-gray-600 hover:text-blue-700"
+              }
+            >
+              Tasks
+            </NavLink>
+          </nav>
 
-        <Routes>
-          <Route
-            path="/"
-            element={
-              <Dashboard
-                tasks={tasks}
-                onComplete={completeTask}
-                onDelete={deleteTask}
-                onEdit={(task) => setEditingTask(task)} // open modal in edit mode
-              />
-            }
-          />
-          <Route
-            path="/tasks"
-            element={
-              <Tasks
-                tasks={tasks}
-                onComplete={completeTask}
-                onDelete={deleteTask}
-                onAdd={() => setIsModalOpen(true)}
-                onEdit={(task) => setEditingTask(task)} // open modal in edit mode
-              />
-            }
-          />
-        </Routes>
+          <Routes>
+            <Route
+              path="/"
+              element={
+                <Dashboard
+                  tasks={tasks}
+                  onComplete={completeTask}
+                  onDelete={deleteTask}
+                  onEdit={(task) => setEditingTask(task)} // open modal in edit mode
+                />
+              }
+            />
+            <Route
+              path="/tasks"
+              element={
+                <Tasks
+                  tasks={tasks}
+                  onComplete={completeTask}
+                  onDelete={deleteTask}
+                  onAdd={() => setIsModalOpen(true)}
+                  onEdit={(task) => setEditingTask(task)} // open modal in edit mode
+                />
+              }
+            />
+          </Routes>
 
-        {/* Modal for adding tasks */}
-        <Modal
-          isOpen={isModalOpen || editingTask !== null}
-          onClose={() => {
-            setIsModalOpen(false);
-            setEditingTask(null);
-          }}
-          title={editingTask ? "Edit Task" : "Create New Task"}
-        >
-          <TaskForm
-            initialData={editingTask}
-            onSubmit={editingTask ? handleEditTask : addTask}
-            onCancel={() => {
+          {/* Modal for adding tasks */}
+          <Modal
+            isOpen={isModalOpen || editingTask !== null}
+            onClose={() => {
               setIsModalOpen(false);
               setEditingTask(null);
             }}
-          />
-        </Modal>
-      </div>
-    </Router>
+            title={editingTask ? "Edit Task" : "Create New Task"}
+          >
+            <TaskForm
+              initialData={editingTask}
+              onSubmit={editingTask ? handleEditTask : addTask}
+              onCancel={() => {
+                setIsModalOpen(false);
+                setEditingTask(null);
+              }}
+            />
+          </Modal>
+        </div>
+      </Router>
+    </>
   );
 }
 
